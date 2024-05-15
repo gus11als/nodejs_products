@@ -1,6 +1,7 @@
 import express from 'express';
 import connect from './schemas/index.js';
 import ProductRouter from "./routers/products.router.js";
+import errorHandlerMiddleware from "./middlewarmies/error-handler.middleware.js";
 
 const app = express();
 const PORT = 3000;
@@ -22,6 +23,9 @@ router.get('/', (req, res) => {
 });
 
 app.use("/api", [router, ProductRouter]); // 미들웨어 5
+
+//에러 처리 미들웨어 등록
+app.use(errorHandlerMiddleware);
 
 app.listen(PORT, () => {
   console.log(PORT, '포트로 서버가 열렸어요!');
