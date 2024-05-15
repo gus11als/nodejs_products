@@ -92,7 +92,7 @@ router.get('/products/:productId', async (req, res, next) => {
     if (!product) {
       return res
         .status(404)
-        .json({ success: false, message: '상품을 찾을 수 없습니다.' });
+        .json({message: '상품을 찾을 수 없습니다.' });
     }
 
     // 조회된 상품 정보를 클라이언트에게 반환
