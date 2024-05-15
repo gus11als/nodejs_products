@@ -5,11 +5,20 @@ import Product from '../schemas/product.schema.js';
 const router = express.Router();
 
 const productSchema = joi.object({
-  productName: joi.string().required(),
-  productDescription: joi.string().required(),
-  manager: joi.string().required(),
-  password: joi.string().required(),
+  productName: joi.string().required().messages({
+    'any.required': '상품명을 입력해주세요'
+  }),
+  productDescription: joi.string().required().messages({
+    'any.required': '상품설명을 입력해주세요'
+  }),
+  manager: joi.string().required().messages({
+    'any.required': '담당자를 입력해주세요'
+  }),
+  password: joi.string().required().messages({
+    'any.required': '비밀번호를 입력해주세요'
+  }),
 });
+
 
 // 상품 등록 API
 router.post('/products', async (req, res, next) => {
@@ -39,10 +48,15 @@ router.post('/products', async (req, res, next) => {
     // 데이터베이스에 상품 저장
     await product.save();
 
-    // 클라이언트에게 응답 반환
-    return res.status(201).json({ product: product });
+   // 클라이언트에게 응답 반환
+   return res.status(201).json({ product: product });
   } catch (error) {
-    // 에러 처리 미들웨어 실행
+    // Joi 유효성 검사 에러 처리
+    if (error.isJoi) {
+      const errorMessage = error.details.map((err) => err.message).join(', ');
+      return res.status(400).json({ message: errorMessage });
+    }
+    // 에러 처리 미들웨어로 에러 전달
     next(error);
   }
 });
@@ -104,9 +118,19 @@ router.patch('/products/:productId', async (req, res, next) => {
       return res.status(404).json({ message: '상품을 찾을 수 없습니다.' });
     }
 
+    // 비밀번호 제공 여부 확인
+    if (!password) {
+      return res.status(400).json({ message: '비밀번호를 입력해 주세요.' });
+    }
+
     // 비밀번호 일치 여부 확인
     if (password !== product.password) {
       return res.status(401).json({ message: '비밀번호가 일치하지 않습니다.' });
+    }
+
+    // 상품 상태가 유효한지 확인
+    if (status && !['FOR_SALE', 'SOLD_OUT'].includes(status)) {
+      return res.status(400).json({ message: '상품 상태는 [FOR_SALE, SOLD_OUT] 중 하나여야 합니다.' });
     }
 
     // 상품 정보 부분적으로 수정
@@ -137,25 +161,24 @@ router.delete('/products/:productId', async (req, res, next) => {
 
     // 상품이 존재하지 않는 경우
     if (!product) {
-      return res
-        .status(404)
-        .json({message: '상품을 찾을 수 없습니다.' });
+      return res.status(404).json({ message: '상품을 찾을 수 없습니다.' });
+    }
+
+    // 비밀번호 제공 여부 확인
+    if (!password) {
+      return res.status(400).json({ message: '비밀번호를 입력해 주세요.' });
     }
 
     // 비밀번호 일치 여부 확인
     if (password !== product.password) {
-      return res
-        .status(401)
-        .json({message: '비밀번호가 일치하지 않습니다.' });
+      return res.status(401).json({ message: '비밀번호가 일치하지 않습니다.' });
     }
 
     // 상품 삭제
     await Product.findByIdAndDelete(productId);
 
     // 삭제 성공 메시지 반환
-    res
-      .status(200)
-      .json({message: '상품이 성공적으로 삭제되었습니다.' });
+    res.status(200).json({ message: '상품이 성공적으로 삭제되었습니다.' });
   } catch (error) {
     // 에러 발생 시 에러 처리 미들웨어로 전달
     next(error);
